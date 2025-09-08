@@ -16,3 +16,5 @@ QWEN.md
 !README.md
 !style.css
 regex/*
+tracker-card-templates/roleplay-card-template-sidebar.html
+tracker-card-templates/roleplay-card-template-sidebar_preset.json

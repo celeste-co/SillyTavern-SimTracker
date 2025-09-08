@@ -106,46 +106,62 @@ jQuery(async () => {
     await initialize_settings();
     await load_settings_html_manually();
     await populateTemplateDropdown(get_settings);
-    
+
     // Create wrapper functions that pass the required dependencies
     const wrappedLoadTemplate = () => loadTemplate(get_settings, set_settings);
-    const wrappedRefreshAllCards = () => refreshAllCards(get_settings, CONTAINER_ID, 
+    const wrappedRefreshAllCards = () => refreshAllCards(get_settings, CONTAINER_ID,
       (mesId) => renderTrackerWithoutSim(mesId, get_settings, compiledWrapperTemplate, compiledCardTemplate, getReactionEmoji, darkenColor, lastSimJsonString));
     const wrappedMigrateAllSimData = () => migrateAllSimData(get_settings);
     const wrappedHandleCustomTemplateUpload = (event) => handleCustomTemplateUpload(event, set_settings, wrappedLoadTemplate, wrappedRefreshAllCards);
     const wrappedHandlePresetExport = () => handlePresetExport(wrappedLoadTemplate, wrappedRefreshAllCards);
     const wrappedHandlePresetImport = (event) => handlePresetImport(event, wrappedLoadTemplate, wrappedRefreshAllCards);
     const wrappedShowManagePresetsModal = () => showManagePresetsModal(wrappedLoadTemplate, wrappedRefreshAllCards);
-    
+
     initialize_settings_listeners(wrappedLoadTemplate, wrappedRefreshAllCards, wrappedMigrateAllSimData, wrappedHandleCustomTemplateUpload, wrappedHandlePresetExport, wrappedHandlePresetImport, wrappedShowManagePresetsModal);
     log("Settings panel listeners initialized.");
     await wrappedLoadTemplate();
 
+    // Ensure generation flag starts as false on initialization
+    setGenerationInProgress(false);
+
     // Set up MutationObserver to hide sim code blocks as they stream in
     log("Setting up MutationObserver for in-flight sim block hiding...");
     const observer = new MutationObserver((mutations) => {
+      // Debug logging for troubleshooting
+      const isEnabled = get_settings("isEnabled");
+      const hideSimBlocks = get_settings("hideSimBlocks");
+      const generationInProgress = getGenerationInProgress();
+
+      console.log(`[SST-DEBUG] MutationObserver triggered - Enabled: ${isEnabled}, HideSimBlocks: ${hideSimBlocks}, GenerationInProgress: ${generationInProgress}`);
+
       // Only process if the extension is enabled, hiding is turned on, and generation is in progress
       if (
-        !get_settings("isEnabled") ||
-        !get_settings("hideSimBlocks") ||
-        !getGenerationInProgress()
-      )
+        !isEnabled ||
+        !hideSimBlocks ||
+        !generationInProgress
+      ) {
+        console.log(`[SST-DEBUG] Skipping mutation processing - conditions not met`);
         return;
+      }
 
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           // Check if the added node is a pre element or contains pre elements
           if (node.nodeType === Node.ELEMENT_NODE) {
+            console.log(`[SST-DEBUG] Processing added node:`, node.tagName, node.className);
             const preElements =
               node.tagName === "PRE" ? [node] : node.querySelectorAll("pre");
+            console.log(`[SST-DEBUG] Found ${preElements.length} pre elements`);
             preElements.forEach((pre) => {
               // Check if this pre element is within a mes_text div and contains sim data
               if (pre.closest(".mes_text")) {
+                console.log(`[SST-DEBUG] Pre element is within mes_text`);
                 // Check if this is a sim code block
                 const codeElement = pre.querySelector("code");
                 if (codeElement) {
                   const identifier = get_settings("codeBlockIdentifier");
                   const classList = codeElement.classList;
+                  console.log(`[SST-DEBUG] Code element classes:`, Array.from(classList), `Content starts with:`, codeElement.textContent.substring(0, 50));
                   // Check if any class matches our identifier (like language-sim)
                   const isSimBlock =
                     Array.from(classList).some((cls) =>
@@ -153,6 +169,7 @@ jQuery(async () => {
                     ) || codeElement.textContent.trim().startsWith(identifier);
 
                   if (isSimBlock) {
+                    console.log(`[SST-DEBUG] Found sim block during streaming! Hiding it now. Content preview:`, codeElement.textContent.substring(0, 100) + "...");
                     log(`Hiding in-flight code block in mes_text`);
                     pre.style.display = "none";
 
@@ -229,18 +246,18 @@ jQuery(async () => {
         callback: (args) => {
           // Check if a format parameter was provided
           const targetFormat = args && args.length > 0 ? args[0].toLowerCase() : null;
-          
+
           // Validate format parameter
           if (targetFormat && targetFormat !== "json" && targetFormat !== "yaml") {
             return "Invalid format specified. Use 'json' or 'yaml'.";
           }
-          
+
           let message = "This will convert all sim data in the current chat to the new format.";
           if (targetFormat) {
             message += ` All blocks will be converted to ${targetFormat.toUpperCase()} format.`;
           }
           message += " Are you sure?";
-          
+
           if (confirm(message)) {
             // If a target format was specified, update the user's setting
             if (targetFormat) {
@@ -400,7 +417,7 @@ ${exampleJson}
             // Append the sim block to the message in the user's preferred format
             const format = get_settings("trackerFormat") || "json";
             let simBlock;
-            
+
             if (format === "yaml") {
               // Create a basic YAML structure
               simBlock = `
@@ -436,7 +453,7 @@ characters:
 }
 \`\`\``;
             }
-            
+
             lastCharMessage.mes += simBlock;
 
             // Update the message in the UI
@@ -486,29 +503,30 @@ characters:
 
     // Set generation in progress flag when generation starts
     eventSource.on(event_types.GENERATION_STARTED, () => {
+      console.log(`[SST-DEBUG] GENERATION_STARTED event - setting flag to true`);
       setGenerationInProgress(true);
     });
 
     // Also set generation in progress flag for after commands event
     eventSource.on(event_types.GENERATION_AFTER_COMMANDS, () => {
+      console.log(`[SST-DEBUG] GENERATION_AFTER_COMMANDS event - setting flag to true`);
       setGenerationInProgress(true);
     });
 
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (mesId) => {
-      // Clear generation in progress flag when message is rendered
-      setGenerationInProgress(false);
+      // Don't clear the generation flag yet - sim blocks might still be streaming
+      console.log(`[SST-DEBUG] CHARACTER_MESSAGE_RENDERED event for message ${mesId} - keeping generation flag true for sim block streaming`);
+      // Note: The generation flag will be cleared by GENERATION_ENDED event instead
       renderTracker(mesId, get_settings, compiledWrapperTemplate, compiledCardTemplate, getReactionEmoji, darkenColor, lastSimJsonString);
     });
-    
+
     eventSource.on(event_types.CHAT_CHANGED, wrappedRefreshAllCards);
     eventSource.on(event_types.MORE_MESSAGES_LOADED, wrappedRefreshAllCards);
     eventSource.on(event_types.MESSAGE_UPDATED, wrappedRefreshAllCards);
-    
     eventSource.on(event_types.MESSAGE_EDITED, (mesId) => {
       log(`Message ${mesId} was edited. Re-rendering tracker card.`);
       renderTrackerWithoutSim(mesId, get_settings, compiledWrapperTemplate, compiledCardTemplate, getReactionEmoji, darkenColor, lastSimJsonString);
     });
-    
     eventSource.on(event_types.MESSAGE_SWIPE, (mesId) => {
       log(
         `Message swipe detected for message ID ${mesId}. Updating last_sim_stats macro.`
@@ -517,10 +535,13 @@ characters:
       if (updatedStats) {
         lastSimJsonString = updatedStats;
       }
+      // Re-render the tracker to hide sim blocks in the new swipe
+      renderTrackerWithoutSim(mesId, get_settings, compiledWrapperTemplate, compiledCardTemplate, getReactionEmoji, darkenColor, lastSimJsonString);
     });
 
     // Listen for generation ended event to update sidebars
     eventSource.on(event_types.GENERATION_ENDED, () => {
+      console.log(`[SST-DEBUG] GENERATION_ENDED event - setting flag to false`);
       log("Generation ended, updating sidebars if needed");
       setGenerationInProgress(false);
 
