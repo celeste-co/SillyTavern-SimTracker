@@ -86,6 +86,7 @@
       z-index: 5; /* Lower z-index for inactive cards */
       border: 1px solid rgba(255, 255, 255, 0.05);
       overflow: hidden; /* Prevent overlay from spilling over */
+      pointer-events: auto; /* Enable interactions within cards */
     }
 
     .sim-tracker-card.active {
@@ -129,6 +130,8 @@
       font-size: 1.3em;
       font-weight: 600;
       color: #ffffff;
+      user-select: text;
+      pointer-events: auto;
     }
 
     .status-indicator {
@@ -236,10 +239,25 @@
       align-items: center;
     }
 
+    .left-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .days-departure {
       font-size: 0.9em;
       color: rgba(255, 255, 255, 0.8);
       font-weight: 600;
+    }
+
+    .school-year {
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 500;
     }
 
     .weather {
@@ -337,6 +355,8 @@
       line-height: 1.4;
       color: rgba(255, 255, 255, 0.85);
       font-style: italic;
+      user-select: text;
+      pointer-events: auto;
     }
 
     .info-sections {
@@ -358,16 +378,8 @@
       font-size: 0.9em;
       color: rgba(255, 255, 255, 0.9);
       line-height: 1.3;
-    }
-
-    .inventory-section {
-      margin: 16px 0;
-    }
-
-    .inventory-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
+      user-select: text;
+      pointer-events: auto;
     }
 
     .inventory-item {
@@ -376,12 +388,16 @@
       padding: 4px 8px;
       font-size: 0.8em;
       color: rgba(255, 255, 255, 0.8);
+      user-select: text;
+      pointer-events: auto;
     }
 
     .inventory-text {
       font-size: 0.9em;
       color: rgba(255, 255, 255, 0.85);
       line-height: 1.3;
+      user-select: text;
+      pointer-events: auto;
     }
 
     /* NPC-specific styles */
@@ -398,9 +414,6 @@
       grid-column: span 1;
     }
 
-    .stamina-stat {
-      grid-column: span 1;
-    }
 
     .relationship-stat {
       grid-column: span 2; /* Full width for relationship bar */
@@ -412,6 +425,94 @@
       flex-wrap: wrap;
       gap: 6px;
       margin-top: 4px;
+    }
+
+    /* Collapsible section styling */
+    .collapsible-section {
+      margin-bottom: 12px;
+    }
+
+    .section-toggle {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      position: absolute !important;
+      left: -9999px !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer !important;
+      padding: 4px 0;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+      user-select: none;
+      pointer-events: auto !important;
+    }
+
+    .section-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .section-arrow {
+      font-size: 0.8em;
+      transition: transform 0.3s ease;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .section-toggle:checked + .section-header .section-arrow {
+      transform: rotate(90deg);
+    }
+
+    .section-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .section-toggle:checked + .section-header + .section-content {
+      max-height: 200px; /* Adjust as needed */
+    }
+
+    .section-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      padding-top: 4px;
+    }
+
+    /* Magical equipment side-by-side layout */
+    .magical-equipment-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .magical-equipment-row .info-item {
+      flex: 1;
+      margin-bottom: 0;
+      min-width: 0; /* Allow flex items to shrink */
+    }
+
+    .magical-equipment-row .info-text {
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      hyphens: auto;
+    }
+
+    /* Familiar styling under character name */
+    .character-familiar {
+      font-size: 0.85em;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 4px;
+      font-style: italic;
+      user-select: text;
+      pointer-events: auto;
     }
 
     /* Section separator */
@@ -542,6 +643,7 @@
     }
   </style>
 
+
   <div class="sim-tracker-container">
     <div class="sim-tracker-tabs">
       {{#each characters}}
@@ -573,9 +675,14 @@
       <!-- USER CHARACTER CARD -->
       <!-- Day and weather info at the top -->
       <div class="world-info-header">
-        {{#if stats.daysSinceDeparture}}
-        <div class="days-departure">Day {{stats.daysSinceDeparture}}</div>
-        {{/if}}
+        <div class="left-info">
+          {{#if stats.daysSinceStartOfSchool}}
+          <div class="days-departure">Day {{stats.daysSinceStartOfSchool}}</div>
+          {{/if}}
+          {{#if stats.grade}}
+          <div class="school-year">{{stats.grade}}</div>
+          {{/if}}
+        </div>
         {{#if stats.weather}}
         <div class="weather">🌤️ {{stats.weather}}</div>
         {{/if}}
@@ -583,7 +690,12 @@
 
       <!-- Character header with name -->
       <div class="character-header">
-        <div class="character-name">{{characterName}}</div>
+        <div>
+          <div class="character-name">{{characterName}}</div>
+          {{#if stats.familiar}}
+          <div class="character-familiar">🦉 {{stats.familiar}}</div>
+          {{/if}}
+        </div>
         <div class="status-indicator">
           {{#if stats.inactive}} 💤 {{else}}
             {{#if stats.health}}
@@ -634,16 +746,13 @@
         </div>
         {{/if}}
 
-        {{#if stats.stamina}}
-        <div class="stat-block stamina-stat">
-          <div class="stat-label">⚡ Stamina</div>
-          <div class="stat-value">{{stats.stamina}}/100</div>
-          <div class="stat-bar-bg">
-            <div class="stat-bar-fill" style="width: {{stats.stamina}}%; background: linear-gradient(90deg, #4444ff, #88aaff);"></div>
-          </div>
-          {{#if stats.staminaModified}}{{#unless (eq stats.staminaModified 0)}}
-          <div class="change-indicator {{#if (gt stats.staminaModified 0)}}positive{{else}}negative{{/if}}">
-            {{#if (gt stats.staminaModified 0)}}+{{/if}}{{stats.staminaModified}}
+        {{#if stats.adversityTokens}}
+        <div class="stat-block">
+          <div class="stat-label">⚡ Adversity Tokens</div>
+          <div class="stat-value">{{stats.adversityTokens}}</div>
+          {{#if stats.adversityTokensModified}}{{#unless (eq stats.adversityTokensModified 0)}}
+          <div class="change-indicator {{#if (gt stats.adversityTokensModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.adversityTokensModified 0)}}+{{/if}}{{stats.adversityTokensModified}}
           </div>
           {{/unless}}{{/if}}
         </div>
@@ -717,40 +826,31 @@
 
       <!-- Magical Equipment -->
       <div class="info-sections">
-        {{#if stats.wand}}
+        {{#if stats.wand}}{{#if stats.broom}}
+        <!-- Both wand and broom - side by side -->
+        <div class="magical-equipment-row">
+          <div class="info-item">
+            <div class="info-label">🪄 Wand</div>
+            <div class="info-text">{{stats.wand}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🧹 Broom</div>
+            <div class="info-text">{{stats.broom}}</div>
+          </div>
+        </div>
+        {{else}}
+        <!-- Only wand -->
         <div class="info-item">
           <div class="info-label">🪄 Wand</div>
           <div class="info-text">{{stats.wand}}</div>
         </div>
-        {{/if}}
-
-        {{#if stats.broom}}
+        {{/if}}{{else}}{{#if stats.broom}}
+        <!-- Only broom -->
         <div class="info-item">
           <div class="info-label">🧹 Broom</div>
           <div class="info-text">{{stats.broom}}</div>
         </div>
-        {{/if}}
-
-        {{#if stats.familiar}}
-        <div class="info-item">
-          <div class="info-label">🦉 Familiar</div>
-          <div class="info-text">{{stats.familiar}}</div>
-        </div>
-        {{/if}}
-
-        {{#if stats.grade}}
-        <div class="info-item">
-          <div class="info-label">🎓 Grade</div>
-          <div class="info-text">{{stats.grade}}</div>
-        </div>
-        {{/if}}
-
-        {{#if stats.adversityTokens}}
-        <div class="info-item">
-          <div class="info-label">⚡ Adversity Tokens</div>
-          <div class="info-text">{{stats.adversityTokens}}</div>
-        </div>
-        {{/if}}
+        {{/if}}{{/if}}
 
         {{#if stats.location}}
         <div class="info-item">
@@ -760,42 +860,58 @@
         {{/if}}
 
         {{#if stats.clothing}}
-        <div class="info-item">
-          <div class="info-label">👕 Clothing</div>
-          <div class="clothing-items">
+        <div class="collapsible-section">
+          <input type="checkbox" id="clothing-toggle-{{@../index}}" class="section-toggle">
+          <label for="clothing-toggle-{{@../index}}" class="section-header">
+            <div class="info-label">👕 Clothing</div>
+            <div class="section-arrow">▶</div>
+          </label>
+          <div class="section-content">
             {{#if (typeof stats.clothing)}}
-              {{#each stats.clothing}}
-              <span class="inventory-item">{{this}}</span>
-              {{/each}}
+              <div class="section-items">
+                {{#each stats.clothing}}
+                <span class="inventory-item">{{this}}</span>
+                {{/each}}
+              </div>
             {{else}}
               <div class="inventory-text">{{stats.clothing}}</div>
             {{/if}}
           </div>
         </div>
         {{/if}}
-      </div>
 
-      <!-- Schoolbag -->
-      {{#if stats.schoolbag}}
-      <div class="inventory-section">
-        <div class="section-title">🎒 Schoolbag</div>
-        <div class="inventory-items">
-          {{#if (typeof stats.schoolbag)}}
-            {{#each stats.schoolbag}}
-            <span class="inventory-item">{{this}}</span>
-            {{/each}}
-          {{else}}
-            <div class="inventory-text">{{stats.schoolbag}}</div>
-          {{/if}}
+        {{#if stats.schoolbag}}
+        <div class="collapsible-section">
+          <input type="checkbox" id="schoolbag-toggle-{{@../index}}" class="section-toggle">
+          <label for="schoolbag-toggle-{{@../index}}" class="section-header">
+            <div class="info-label">🎒 Schoolbag</div>
+            <div class="section-arrow">▶</div>
+          </label>
+          <div class="section-content">
+            {{#if (typeof stats.schoolbag)}}
+              <div class="section-items">
+                {{#each stats.schoolbag}}
+                <span class="inventory-item">{{this}}</span>
+                {{/each}}
+              </div>
+            {{else}}
+              <div class="inventory-text">{{stats.schoolbag}}</div>
+            {{/if}}
+          </div>
         </div>
+        {{/if}}
       </div>
-      {{/if}}
 
       {{else}}
       <!-- NPC CHARACTER CARD -->
       <!-- Character header with name and status -->
       <div class="character-header">
-        <div class="character-name">{{characterName}}</div>
+        <div>
+          <div class="character-name">{{characterName}}</div>
+          {{#if stats.familiar}}
+          <div class="character-familiar">🦉 {{stats.familiar}}</div>
+          {{/if}}
+        </div>
         <div class="status-indicator">
           {{#if stats.inactive}} 💤 {{else}}
             {{#if stats.relationship}}
@@ -930,6 +1046,39 @@
       </div>
       {{/if}}
 
+      <!-- Magical Equipment for NPCs -->
+      {{#if stats.wand}}{{#if stats.broom}}
+      <!-- Both wand and broom - side by side -->
+      <div class="info-sections">
+        <div class="magical-equipment-row">
+          <div class="info-item">
+            <div class="info-label">🪄 Wand</div>
+            <div class="info-text">{{stats.wand}}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">🧹 Broom</div>
+            <div class="info-text">{{stats.broom}}</div>
+          </div>
+        </div>
+      </div>
+      {{else}}
+      <!-- Only wand -->
+      <div class="info-sections">
+        <div class="info-item">
+          <div class="info-label">🪄 Wand</div>
+          <div class="info-text">{{stats.wand}}</div>
+        </div>
+      </div>
+      {{/if}}{{else}}{{#if stats.broom}}
+      <!-- Only broom -->
+      <div class="info-sections">
+        <div class="info-item">
+          <div class="info-label">🧹 Broom</div>
+          <div class="info-text">{{stats.broom}}</div>
+        </div>
+      </div>
+      {{/if}}{{/if}}
+
       <!-- Character Info -->
       <div class="npc-info">
         {{#if stats.relation}}
@@ -960,7 +1109,7 @@
       <div class="thought-bubble">
         <div style="display: flex; align-items: flex-start; gap: 10px">
           <div style="font-size: 1.2em; flex-shrink: 0">💭</div>
-          <div style="font-size: 0.95em; line-height: 1.4; color: rgba(255, 255, 255, 0.85);">
+          <div style="font-size: 0.95em; line-height: 1.4; color: rgba(255, 255, 255, 0.85); user-select: text; pointer-events: auto;">
             {{stats.currentThoughts}}
           </div>
         </div>
