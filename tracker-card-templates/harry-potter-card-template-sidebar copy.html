@@ -1,0 +1,1002 @@
+<!-- TEMPLATE NAME: Kids on Brooms Tracker (Right Side with Tabs) -->
+<!-- AUTHOR: celestevlr -->
+<!-- POSITION: RIGHT -->
+
+<!-- CARD_TEMPLATE_START -->
+<style>
+    /* The actual template styling */
+    .sim-tracker-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      position: relative;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .sim-tracker-tabs {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: absolute;
+      right: 340px; /* Position tabs to work with 320px card width and avoid overlap */
+      top: 0;
+      bottom: 0;
+      justify-content: center;
+      height: 100%;
+      z-index: 10; /* Lower z-index so tabs are behind cards */
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      pointer-events: auto;
+    }
+
+    .sim-tracker-tab {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      flex-shrink: 0;
+      margin: 0 8px; /* Add some horizontal spacing */
+      transform: translateX(0); /* No transform needed since container handles positioning */
+      z-index: 10; /* Lower z-index so tabs are behind cards */
+      pointer-events: auto;
+    }
+
+    /* Override global stylesheet for our wider cards */
+    #sst-global-sidebar-right .sim-tracker-tab.active {
+      transform: translateX(-320px) !important; /* Match our 320px card width */
+      z-index: 20; /* Higher z-index for active tab */
+    }
+
+    .tab-initials {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #6a5acd, #5a4abc);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .sim-tracker-card {
+      background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+      border-radius: 18px;
+      padding: 20px;
+      width: 320px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: absolute;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%) translateX(100%);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 5; /* Lower z-index for inactive cards */
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      overflow: hidden; /* Prevent overlay from spilling over */
+    }
+
+    .sim-tracker-card.active {
+      transform: translateY(-50%) translateX(0);
+      opacity: 1;
+      visibility: visible;
+      z-index: 30; /* Much higher z-index for active card to cover all tabs */
+    }
+
+    .sim-tracker-card.sliding-in {
+      transform: translateY(-50%) translateX(0);
+      opacity: 1;
+      visibility: visible;
+      z-index: 30; /* Much higher z-index for active card to cover all tabs */
+    }
+
+    .sim-tracker-card.sliding-out {
+      transform: translateY(-50%) translateX(300px);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 5;
+    }
+
+    .sim-tracker-card.inactive {
+      opacity: 1; /* Reset opacity since we're using overlay */
+      z-index: 25; /* Higher z-index for inactive cards to prevent tab overlap */
+    }
+
+    .sim-tracker-card.inactive.active {
+      z-index: 30; /* Even higher for active inactive cards */
+    }
+
+    .character-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .character-name {
+      font-size: 1.3em;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .status-indicator {
+      font-size: 1.4em;
+    }
+
+    .stats-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9em;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .stat-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .status-container {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .relationship-status,
+    .desire-status {
+      margin-bottom: 10px;
+      font-size: 0.95em;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .days-counter {
+      text-align: left;
+      font-style: italic;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1em;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .thought-bubble {
+      margin-top: 6px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .thought-label {
+      position: relative;
+      padding-top: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      letter-spacing: 0.25px;
+    }
+
+    /* Overlay for inactive characters */
+    .narrative-inactive-overlay {
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: calc(100% + 10px);
+      height: calc(100% + 10px);
+      background-color: black;
+      opacity: 0.5;
+      border-radius: 18px;
+      display: none;
+      z-index: 100; /* High z-index to cover all content */
+      pointer-events: none; /* Allow clicks to pass through to underlying elements */
+    }
+
+    .narrative-inactive .narrative-inactive-overlay {
+      display: block;
+    }
+
+    /* Roleplay-specific styles */
+    .world-info-header {
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .days-departure {
+      font-size: 0.9em;
+      color: rgba(255, 255, 255, 0.8);
+      font-weight: 600;
+    }
+
+    .weather {
+      font-size: 0.9em;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .level-indicator {
+      font-size: 1em;
+      color: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    /* Auto-adjust grid for single items */
+    .stats-grid:has(.relationship-stat:only-child) {
+      grid-template-columns: 1fr;
+    }
+
+    .stat-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .stat-label {
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 0.95em;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .abilities-section {
+      margin: 16px 0;
+    }
+
+    .section-title {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .abilities-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .ability-score {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ability-name {
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 600;
+    }
+
+    .ability-value {
+      font-size: 0.9em;
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .goal-section {
+      margin: 16px 0;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .goal-text {
+      font-size: 0.9em;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.85);
+      font-style: italic;
+    }
+
+    .info-sections {
+      margin: 16px 0;
+    }
+
+    .info-item {
+      margin-bottom: 12px;
+    }
+
+    .info-label {
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .info-text {
+      font-size: 0.9em;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.3;
+    }
+
+    .inventory-section {
+      margin: 16px 0;
+    }
+
+    .inventory-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .inventory-item {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.8em;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .inventory-text {
+      font-size: 0.9em;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.3;
+    }
+
+    /* NPC-specific styles */
+    .npc-info {
+      margin-bottom: 16px;
+    }
+
+    /* Specific stat block styling */
+    .level-stat {
+      grid-column: span 1;
+    }
+
+    .health-stat {
+      grid-column: span 1;
+    }
+
+    .stamina-stat {
+      grid-column: span 1;
+    }
+
+    .relationship-stat {
+      grid-column: span 2; /* Full width for relationship bar */
+    }
+
+    /* Clothing items styling to match inventory */
+    .clothing-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    /* Section separator */
+    .section-separator {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 16px 0;
+    }
+
+    /* Relationship section */
+    .relationship-section {
+      margin: 16px 0;
+    }
+
+    .relationship-bar-bg {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Center line for neutral relationship */
+    .relationship-bar-bg::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255, 255, 255, 0.4);
+      z-index: 2;
+    }
+
+    .relationship-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      position: absolute;
+      top: 0;
+    }
+
+    /* Positive relationship (above 50) - fills right from center */
+    .relationship-positive {
+      left: 50%;
+    }
+
+    /* Negative relationship (below 50) - fills left from center */
+    .relationship-negative {
+      right: 50%;
+    }
+
+    /* Neutral relationship (exactly 50) - small center indicator */
+    .relationship-neutral-center {
+      left: 49%;
+      width: 2% !important;
+    }
+
+    .relationship-excellent {
+      background: linear-gradient(90deg, #44ff44, #66ff66);
+    }
+
+    .relationship-good {
+      background: linear-gradient(90deg, #88ff88, #aaffaa);
+    }
+
+    .relationship-neutral {
+      background: linear-gradient(90deg, #ffff44, #ffff88);
+    }
+
+    .relationship-poor {
+      background: linear-gradient(90deg, #ff8844, #ffaa66);
+    }
+
+    .relationship-hostile {
+      background: linear-gradient(90deg, #ff4444, #ff6666);
+    }
+
+    /* Change indicator for stat modifications */
+    .change-indicator {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      min-width: 20px;
+      text-align: center;
+      line-height: 1.2;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      animation: pulse 0.5s ease-in-out;
+      z-index: 10;
+    }
+
+    .change-indicator.positive {
+      background: rgba(46, 204, 113, 0.9) !important;
+    }
+
+    .change-indicator.negative {
+      background: rgba(231, 76, 60, 0.9) !important;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.8); opacity: 0.7; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Make stat blocks positioned for change indicators */
+    .stat-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 8px;
+      position: relative;
+    }
+
+    .ability-score {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+  </style>
+
+  <div class="sim-tracker-container">
+    <div class="sim-tracker-tabs">
+      {{#each characters}}
+      <div
+        class="sim-tracker-tab"
+        data-character="{{@index}}"
+        style="background: linear-gradient(145deg, {{adjustColorBrightness bgColor 70}} 0%, {{adjustColorBrightness darkerBgColor 60}} 50%, {{adjustColorBrightness darkerBgColor 50}} 100%);"
+      >
+        <div
+          class="tab-initials"
+          style="background: linear-gradient(145deg, {{adjustColorBrightness bgColor 90}} 0%, {{adjustColorBrightness bgColor 70}} 100%);"
+        >
+          {{initials characterName}}
+        </div>
+      </div>
+      {{/each}}
+    </div>
+
+    {{#each characters}}
+    <div
+      class="sim-tracker-card {{#if stats.inactive}}narrative-inactive{{/if}} {{#if (eq stats.characterType 'user')}}user-character{{else}}npc-character{{/if}}"
+      data-character="{{@index}}"
+      style="background: linear-gradient(145deg, {{adjustColorBrightness bgColor 70}} 0%, {{adjustColorBrightness darkerBgColor 60}} 50%, {{adjustColorBrightness darkerBgColor 50}} 100%);"
+    >
+      <!-- Overlay for inactive characters -->
+      <div class="narrative-inactive-overlay"></div>
+
+      {{#if (eq stats.characterType 'user')}}
+      <!-- USER CHARACTER CARD -->
+      <!-- Day and weather info at the top -->
+      <div class="world-info-header">
+        {{#if stats.daysSinceDeparture}}
+        <div class="days-departure">Day {{stats.daysSinceDeparture}}</div>
+        {{/if}}
+        {{#if stats.weather}}
+        <div class="weather">🌤️ {{stats.weather}}</div>
+        {{/if}}
+      </div>
+
+      <!-- Character header with name -->
+      <div class="character-header">
+        <div class="character-name">{{characterName}}</div>
+        <div class="status-indicator">
+          {{#if stats.inactive}} 💤 {{else}}
+            {{#if stats.health}}
+              {{#if (gt stats.health 80)}} ❤️ {{else if (gt stats.health 40)}} 🤕 {{else}} 💀 {{/if}}
+            {{else}} ⚡ {{/if}}
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Character Stats -->
+      <div class="stats-grid">
+        {{#if stats.level}}
+        <div class="stat-block level-stat">
+          <div class="stat-label">Level</div>
+          <div class="stat-value">Lv.{{stats.level}} {{#if stats.xp}}({{stats.xp}} XP){{/if}}</div>
+          {{#if stats.levelModified}}{{#unless (eq stats.levelModified 0)}}
+          <div class="change-indicator {{#if (gt stats.levelModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.levelModified 0)}}+{{/if}}{{stats.levelModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+
+        {{#if stats.health}}
+        <div class="stat-block health-stat">
+          <div class="stat-label">Health</div>
+          <div class="stat-value">{{stats.health}}/100</div>
+          <div class="stat-bar-bg">
+            <div class="stat-bar-fill" style="width: {{stats.health}}%; background: linear-gradient(90deg, #ff4444, #44ff44);"></div>
+          </div>
+          {{#if stats.healthModified}}{{#unless (eq stats.healthModified 0)}}
+          <div class="change-indicator {{#if (gt stats.healthModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.healthModified 0)}}+{{/if}}{{stats.healthModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+
+        {{#if stats.coins}}
+        <div class="stat-block">
+          <div class="stat-label">💰 Coins</div>
+          <div class="stat-value">{{stats.coins}}</div>
+          {{#if stats.coinsModified}}{{#unless (eq stats.coinsModified 0)}}
+          <div class="change-indicator {{#if (gt stats.coinsModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.coinsModified 0)}}+{{/if}}{{stats.coinsModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+
+        {{#if stats.stamina}}
+        <div class="stat-block stamina-stat">
+          <div class="stat-label">⚡ Stamina</div>
+          <div class="stat-value">{{stats.stamina}}/100</div>
+          <div class="stat-bar-bg">
+            <div class="stat-bar-fill" style="width: {{stats.stamina}}%; background: linear-gradient(90deg, #4444ff, #88aaff);"></div>
+          </div>
+          {{#if stats.staminaModified}}{{#unless (eq stats.staminaModified 0)}}
+          <div class="change-indicator {{#if (gt stats.staminaModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.staminaModified 0)}}+{{/if}}{{stats.staminaModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+      </div>
+
+      <!-- Stats -->
+      {{#if stats.brains}}
+      <div class="abilities-section">
+        <div class="section-title">Stats</div>
+        <div class="abilities-grid">
+          <div class="ability-score">
+            <span class="ability-name">BRAINS</span><span class="ability-value">{{stats.brains}}</span>
+            {{#if stats.brainsModified}}{{#unless (eq stats.brainsModified 0)}}
+            <div class="change-indicator {{#if (gt stats.brainsModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.brainsModified 0)}}+{{/if}}{{stats.brainsModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">BRAWN</span><span class="ability-value">{{stats.brawn}}</span>
+            {{#if stats.brawnModified}}{{#unless (eq stats.brawnModified 0)}}
+            <div class="change-indicator {{#if (gt stats.brawnModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.brawnModified 0)}}+{{/if}}{{stats.brawnModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">FIGHT</span><span class="ability-value">{{stats.fight}}</span>
+            {{#if stats.fightModified}}{{#unless (eq stats.fightModified 0)}}
+            <div class="change-indicator {{#if (gt stats.fightModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.fightModified 0)}}+{{/if}}{{stats.fightModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">FLIGHT</span><span class="ability-value">{{stats.flight}}</span>
+            {{#if stats.flightModified}}{{#unless (eq stats.flightModified 0)}}
+            <div class="change-indicator {{#if (gt stats.flightModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.flightModified 0)}}+{{/if}}{{stats.flightModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">CHARM</span><span class="ability-value">{{stats.charm}}</span>
+            {{#if stats.charmModified}}{{#unless (eq stats.charmModified 0)}}
+            <div class="change-indicator {{#if (gt stats.charmModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.charmModified 0)}}+{{/if}}{{stats.charmModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">GRIT</span><span class="ability-value">{{stats.grit}}</span>
+            {{#if stats.gritModified}}{{#unless (eq stats.gritModified 0)}}
+            <div class="change-indicator {{#if (gt stats.gritModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.gritModified 0)}}+{{/if}}{{stats.gritModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+        </div>
+      </div>
+      {{/if}}
+
+      <!-- Current Goal -->
+      {{#if stats.currentGoal}}
+      <div class="goal-section">
+        <div class="section-title">🎯 Current Goal</div>
+        <div class="goal-text">{{stats.currentGoal}}</div>
+      </div>
+      {{/if}}
+
+      <!-- Magical Equipment -->
+      <div class="info-sections">
+        {{#if stats.wand}}
+        <div class="info-item">
+          <div class="info-label">🪄 Wand</div>
+          <div class="info-text">{{stats.wand}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.broom}}
+        <div class="info-item">
+          <div class="info-label">🧹 Broom</div>
+          <div class="info-text">{{stats.broom}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.familiar}}
+        <div class="info-item">
+          <div class="info-label">🦉 Familiar</div>
+          <div class="info-text">{{stats.familiar}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.grade}}
+        <div class="info-item">
+          <div class="info-label">🎓 Grade</div>
+          <div class="info-text">{{stats.grade}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.adversityTokens}}
+        <div class="info-item">
+          <div class="info-label">⚡ Adversity Tokens</div>
+          <div class="info-text">{{stats.adversityTokens}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.location}}
+        <div class="info-item">
+          <div class="info-label">📍 Location</div>
+          <div class="info-text">{{stats.location}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.clothing}}
+        <div class="info-item">
+          <div class="info-label">👕 Clothing</div>
+          <div class="clothing-items">
+            {{#if (typeof stats.clothing)}}
+              {{#each stats.clothing}}
+              <span class="inventory-item">{{this}}</span>
+              {{/each}}
+            {{else}}
+              <div class="inventory-text">{{stats.clothing}}</div>
+            {{/if}}
+          </div>
+        </div>
+        {{/if}}
+      </div>
+
+      <!-- Schoolbag -->
+      {{#if stats.schoolbag}}
+      <div class="inventory-section">
+        <div class="section-title">🎒 Schoolbag</div>
+        <div class="inventory-items">
+          {{#if (typeof stats.schoolbag)}}
+            {{#each stats.schoolbag}}
+            <span class="inventory-item">{{this}}</span>
+            {{/each}}
+          {{else}}
+            <div class="inventory-text">{{stats.schoolbag}}</div>
+          {{/if}}
+        </div>
+      </div>
+      {{/if}}
+
+      {{else}}
+      <!-- NPC CHARACTER CARD -->
+      <!-- Character header with name and status -->
+      <div class="character-header">
+        <div class="character-name">{{characterName}}</div>
+        <div class="status-indicator">
+          {{#if stats.inactive}} 💤 {{else}}
+            {{#if stats.relationship}}
+              {{#if (gt stats.relationship 80)}} 😊
+              {{else if (gt stats.relationship 60)}} 🙂
+              {{else if (gt stats.relationship 40)}} 😐
+              {{else if (gt stats.relationship 20)}} 😕
+              {{else}} 😠 {{/if}}
+            {{else}} 😐 {{/if}}
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Character Stats (consistent position with user) -->
+      <div class="stats-grid">
+        {{#if stats.level}}
+        <div class="stat-block level-stat">
+          <div class="stat-label">Level</div>
+          <div class="stat-value">Lv.{{stats.level}} {{#if stats.xp}}({{stats.xp}} XP){{/if}}</div>
+          {{#if stats.levelModified}}{{#unless (eq stats.levelModified 0)}}
+          <div class="change-indicator {{#if (gt stats.levelModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.levelModified 0)}}+{{/if}}{{stats.levelModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+
+        {{#if stats.health}}
+        <div class="stat-block health-stat">
+          <div class="stat-label">Health</div>
+          <div class="stat-value">{{stats.health}}/100</div>
+          <div class="stat-bar-bg">
+            <div class="stat-bar-fill" style="width: {{stats.health}}%; background: linear-gradient(90deg, #ff4444, #44ff44);"></div>
+          </div>
+          {{#if stats.healthModified}}{{#unless (eq stats.healthModified 0)}}
+          <div class="change-indicator {{#if (gt stats.healthModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.healthModified 0)}}+{{/if}}{{stats.healthModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+        {{/if}}
+      </div>
+
+      <!-- Stats for NPCs -->
+      {{#if stats.brains}}
+      <div class="abilities-section">
+        <div class="section-title">Stats</div>
+        <div class="abilities-grid">
+          <div class="ability-score">
+            <span class="ability-name">BRAINS</span><span class="ability-value">{{stats.brains}}</span>
+            {{#if stats.brainsModified}}{{#unless (eq stats.brainsModified 0)}}
+            <div class="change-indicator {{#if (gt stats.brainsModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.brainsModified 0)}}+{{/if}}{{stats.brainsModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">BRAWN</span><span class="ability-value">{{stats.brawn}}</span>
+            {{#if stats.brawnModified}}{{#unless (eq stats.brawnModified 0)}}
+            <div class="change-indicator {{#if (gt stats.brawnModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.brawnModified 0)}}+{{/if}}{{stats.brawnModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">FIGHT</span><span class="ability-value">{{stats.fight}}</span>
+            {{#if stats.fightModified}}{{#unless (eq stats.fightModified 0)}}
+            <div class="change-indicator {{#if (gt stats.fightModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.fightModified 0)}}+{{/if}}{{stats.fightModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">FLIGHT</span><span class="ability-value">{{stats.flight}}</span>
+            {{#if stats.flightModified}}{{#unless (eq stats.flightModified 0)}}
+            <div class="change-indicator {{#if (gt stats.flightModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.flightModified 0)}}+{{/if}}{{stats.flightModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">CHARM</span><span class="ability-value">{{stats.charm}}</span>
+            {{#if stats.charmModified}}{{#unless (eq stats.charmModified 0)}}
+            <div class="change-indicator {{#if (gt stats.charmModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.charmModified 0)}}+{{/if}}{{stats.charmModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+          <div class="ability-score">
+            <span class="ability-name">GRIT</span><span class="ability-value">{{stats.grit}}</span>
+            {{#if stats.gritModified}}{{#unless (eq stats.gritModified 0)}}
+            <div class="change-indicator {{#if (gt stats.gritModified 0)}}positive{{else}}negative{{/if}}">
+              {{#if (gt stats.gritModified 0)}}+{{/if}}{{stats.gritModified}}
+            </div>
+            {{/unless}}{{/if}}
+          </div>
+        </div>
+      </div>
+      {{/if}}
+
+      <!-- Separator -->
+      {{#if stats.relation}}
+      <div class="section-separator"></div>
+      {{/if}}
+
+      <!-- Relationship Bar (right after separator) -->
+      {{#if stats.relationship}}
+      <div class="relationship-section">
+        <div class="stat-block relationship-stat">
+          <div class="stat-label">💝 Relationship</div>
+          <div class="stat-value">{{stats.relationship}}/100</div>
+          <div class="relationship-bar-bg" style="--relationship-value: {{stats.relationship}};">
+            {{#if (eq stats.relationship 50)}}
+            <!-- Exactly neutral - show small center indicator -->
+            <div class="relationship-bar-fill relationship-neutral relationship-neutral-center"></div>
+            {{else if (gt stats.relationship 50)}}
+            <!-- Positive relationship - fill right from center -->
+            <div class="relationship-bar-fill relationship-positive relationship-{{#if (gt stats.relationship 80)}}excellent{{else if (gt stats.relationship 65)}}good{{else}}neutral{{/if}}"
+                 style="width: calc((var(--relationship-value) - 50) * 1%);"></div>
+            {{else}}
+            <!-- Negative relationship - fill left from center -->
+            <div class="relationship-bar-fill relationship-negative relationship-{{#if (lt stats.relationship 20)}}hostile{{else if (lt stats.relationship 35)}}poor{{else}}neutral{{/if}}"
+                 style="width: calc((50 - var(--relationship-value)) * 1%);"></div>
+            {{/if}}
+          </div>
+          {{#if stats.relationshipModified}}{{#unless (eq stats.relationshipModified 0)}}
+          <div class="change-indicator {{#if (gt stats.relationshipModified 0)}}positive{{else}}negative{{/if}}">
+            {{#if (gt stats.relationshipModified 0)}}+{{/if}}{{stats.relationshipModified}}
+          </div>
+          {{/unless}}{{/if}}
+        </div>
+      </div>
+      {{/if}}
+
+      <!-- Character Info -->
+      <div class="npc-info">
+        {{#if stats.relation}}
+        <div class="info-item">
+          <div class="info-label">🤝 Relation</div>
+          <div class="info-text">{{stats.relation}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.role}}
+        <div class="info-item">
+          <div class="info-label">⚔️ Role</div>
+          <div class="info-text">{{stats.role}}</div>
+        </div>
+        {{/if}}
+
+        {{#if stats.position}}
+        <div class="info-item">
+          <div class="info-label">📍 Position</div>
+          <div class="info-text">{{stats.position}}</div>
+        </div>
+        {{/if}}
+      </div>
+
+      <!-- Current Thoughts -->
+      {{#if stats.currentThoughts}}
+      <div class="thought-label">Thinks:</div>
+      <div class="thought-bubble">
+        <div style="display: flex; align-items: flex-start; gap: 10px">
+          <div style="font-size: 1.2em; flex-shrink: 0">💭</div>
+          <div style="font-size: 0.95em; line-height: 1.4; color: rgba(255, 255, 255, 0.85);">
+            {{stats.currentThoughts}}
+          </div>
+        </div>
+      </div>
+      {{/if}}
+      {{/if}}
+    </div>
+    {{/each}}
+  </div>
+  <!-- CARD_TEMPLATE_END -->
+
+  <!--
+  TEMPLATE VARIABLES:
+  - {{characters}}: Array of character objects with their data
+  - {{characterName}}: Character's name
+  - {{currentDate}}: Current date in YYYY-MM-DD format
+  - {{bgColor}}: Primary background color
+  - {{darkerBgColor}}: Darker variant of background color
+  - {{contrastColor}}: Contrast color for text against background
+  - {{stats.ap}}: Affection points (max 200)
+  - {{stats.dp}}: Desire points (max 150)
+  - {{stats.tp}}: Trust points (max 150)
+  - {{stats.cp}}: Contempt points (max 150)
+  - {{stats.apChange}}: Change in affection points (positive/negative/zero)
+  - {{stats.dpChange}}: Change in desire points (positive/negative/zero)
+  - {{stats.tpChange}}: Change in trust points (positive/negative/zero)
+  - {{stats.cpChange}}: Change in contempt points (positive/negative/zero)
+  - {{stats.days_since_first_meeting}}: Days since first meeting
+  - {{stats.preg}}: Boolean for pregnancy status
+  - {{stats.days_preg}}: Days pregnant (if applicable)
+  - {{stats.internal_thought}}: Character's internal thoughts
+  - {{stats.relationshipStatus}}: Relationship status text
+  - {{stats.desireStatus}}: Desire status text
+  - {{stats.inactive}}: Boolean for inactive status
+  - {{stats.inactiveReason}}: Number indicating reason for inactivity (0-5)
+  - {{healthIcon}}: Health status icon (🤕 or 💀)
+  - {{reactionEmoji}}: Reaction emoji (👍, 👎, or 😐)
+  - {{showThoughtBubble}}: Boolean to show/hide thought bubble
+  -->
