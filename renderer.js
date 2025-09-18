@@ -561,7 +561,10 @@ const renderTracker = (mesId, get_settings, compiledWrapperTemplate, compiledCar
       if (!characterList.length) return;
 
       // For tabbed templates, we need to pass all characters to the template
-      const isTabbedTemplate = get_settings("templateFile").includes("tabs");
+      const templateFile = get_settings("templateFile");
+      const customTemplateHtml = get_settings("customTemplateHtml");
+      const isTabbedTemplate = templateFile.includes("tabs") ||
+                               (customTemplateHtml && customTemplateHtml.includes("sim-tracker-tabs"));
 
       let cardsHtml = "";
       if (isTabbedTemplate) {
@@ -840,12 +843,15 @@ const renderTrackerWithoutSim = (mesId, get_settings, compiledWrapperTemplate, c
       }
 
       const currentDate = worldData.current_date || "Unknown Date";
-      const currentTime = worldData.current_time || "Unknown Date";
+      const currentTime = worldData.current_time || "Unknown Time";
 
       if (!characterList.length) return;
 
       // For tabbed templates, we need to pass all characters to the template
-      const isTabbedTemplate = get_settings("templateFile").includes("tabs");
+      const templateFile = get_settings("templateFile");
+      const customTemplateHtml = get_settings("customTemplateHtml");
+      const isTabbedTemplate = templateFile.includes("tabs") ||
+                               (customTemplateHtml && customTemplateHtml.includes("sim-tracker-tabs"));
 
       let cardsHtml = "";
       if (isTabbedTemplate) {
