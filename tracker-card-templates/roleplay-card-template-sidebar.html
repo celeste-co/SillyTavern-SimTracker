@@ -451,6 +451,24 @@
     .disposition-hostile {
       background: linear-gradient(90deg, #ff4444, #ff6666);
     }
+
+    /* Mobile-specific adjustments for interactivity */
+    @media (max-width: 768px) {
+        .sim-tracker-tabs {
+            right: 0; /* Adjust position to avoid overlap on mobile */
+            pointer-events: none; /* Disable interactivity on container for mobile */
+        }
+        .sim-tracker-tab {
+            pointer-events: auto; /* Keep individual tabs interactive */
+            transform: scale(0.8); /* Optionally reduce size for mobile */
+        }
+        #sst-global-sidebar-right .sim-tracker-tab.active {
+            transform: translateX(-280px) scale(0.8) !important; /* Adjust for mobile card width */
+        }
+        .sim-tracker-card {
+            width: 280px; /* Reduce card width on mobile if needed */
+        }
+    }
   </style>
 
   <div class="sim-tracker-container">
