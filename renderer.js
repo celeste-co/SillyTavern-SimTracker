@@ -343,6 +343,24 @@ function removeGlobalSidebars() {
   }
 }
 
+// Helper function to toggle sidebar interactivity on mobile
+function toggleSidebarInteractivity(sidebarId, forceActive = false) {
+  const sidebar = document.getElementById(sidebarId);
+  if (!sidebar) return;
+
+  // We only apply this logic on smaller screens (mobile)
+  if (window.innerWidth <= 768) {
+    const cards = sidebar.querySelectorAll('.sim-tracker-card');
+    const isAnyCardActive = Array.from(cards).some(card => card.classList.contains('active'));
+
+    if (isAnyCardActive || forceActive) {
+      sidebar.classList.remove('sst-inactive-mobile');
+    } else {
+      sidebar.classList.add('sst-inactive-mobile');
+    }
+  }
+}
+
 // NEW: Sets the initially active tab and card after a content refresh.
 // This is called every time the sidebar's innerHTML is updated.
 function activateInitialTab(sidebarContentElement) {
@@ -387,9 +405,11 @@ function activateInitialTab(sidebarContentElement) {
                 height: 100%;
             `;
     }
+
+    // Set initial interactivity state for the sidebar on mobile
+    toggleSidebarInteractivity(sidebarContentElement.parentElement.id, true);
   }, 0);
 }
-
 
 // NEW: A single, delegated event handler for tab clicks with full animation logic.
 function handleTabClick(event) {
@@ -411,14 +431,20 @@ function handleTabClick(event) {
   // If the clicked tab was already active, we just wanted to close it.
   // Since we've already deactivated it, we can just stop.
   if (isActive) {
-      return;
+    // Update interactivity since we're closing the active card
+    setTimeout(() => {
+      toggleSidebarInteractivity(sidebarContentElement.parentElement.id);
+    }, 50);
+    return;
   }
 
   // Otherwise, activate the new tab and card
   if (tabs[clickedIndex]) tabs[clickedIndex].classList.add("active");
   if (cards[clickedIndex]) cards[clickedIndex].classList.add("active");
-}
 
+  // A card is now active, so ensure the sidebar is interactive
+  toggleSidebarInteractivity(sidebarContentElement.parentElement.id, true);
+}
 
 // --- RENDER LOGIC ---
 const renderTracker = (mesId, get_settings, compiledWrapperTemplate, compiledCardTemplate, getReactionEmoji, darkenColor, lastSimJsonString) => {
@@ -1052,7 +1078,6 @@ export {
   updateLeftSidebar,
   updateRightSidebar,
   removeGlobalSidebars,
-  // attachTabEventListeners, // This line is removed
   renderTracker,
   renderTrackerWithoutSim,
   refreshAllCards,

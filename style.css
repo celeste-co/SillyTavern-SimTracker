@@ -383,7 +383,6 @@ div[mesid] .mes_text #silly-sim-tracker-container {
     transform: translateY(-50%) translateX(100%) !important;
 }
 
-
 #sst-global-sidebar-right .sim-tracker-card.active {
     transform: translateY(-50%) translateX(0) !important;
 }
@@ -410,4 +409,27 @@ div[mesid] .mes_text #silly-sim-tracker-container {
 .sst-apply-preset, .sst-delete-preset {
     padding: 8px 12px;
     font-size: 0.9em;
+}
+
+/* Make sidebar and its tab container non-interactive on mobile when no card is active, but keep individual tabs interactable */
+@media (max-width: 768px) {
+  .sst-inactive-mobile {
+    pointer-events: none !important;
+  }
+  .sst-inactive-mobile .sim-tracker-tabs {
+    pointer-events: none !important;
+  }
+  .sst-inactive-mobile .sim-tracker-tab {
+    pointer-events: auto !important;
+  }
+}
+
+/* Ensure full interactivity on desktop */
+@media (min-width: 769px) {
+  .sst-global-sidebar-left, .sst-global-sidebar-right {
+    pointer-events: auto !important;
+  }
+  .sim-tracker-tabs, .sim-tracker-tab, .sim-tracker-card {
+    pointer-events: auto !important;
+  }
 }
